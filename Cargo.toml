@@ -1,0 +1,62 @@
+[package]
+name = "sonic-tui"
+version = "0.2.0"
+edition = "2021"
+authors = ["Your Name <your.email@example.com>"]
+description = "A terminal music player for OpenSubsonic/Navidrome servers"
+license = "GPL-3.0"
+repository = "https://github.com/yourusername/sonic-tui"
+homepage = "https://github.com/yourusername/sonic-tui"
+readme = "README.md"
+keywords = ["music", "tui", "subsonic", "navidrome", "terminal"]
+categories = ["command-line-utilities", "multimedia::audio"]
+
+[[bin]]
+name = "sonic-tui"
+path = "src/main.rs"
+
+[dependencies]
+# TUI
+ratatui = "0.29"
+crossterm = "0.28"
+ratatui-image = "1.0"
+image = "0.25"
+
+# Async runtime
+tokio = { version = "1", features = ["full"] }
+
+# HTTP client
+reqwest = { version = "0.12", features = ["json", "rustls-tls"], default-features = false }
+
+# Serialization
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+serde_yaml = "0.9"
+
+# Audio playback
+libmpv2 = "4"
+
+# Utilities
+anyhow = "1"
+thiserror = "1"
+dirs = "5"
+md5 = "0.7"
+rand = "0.8"
+chrono = "0.4"
+unicode-width = "0.1"
+urlencoding = "2"
+
+# Logging
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+# Discord Rich Presence
+discord-rich-presence = "0.2"
+
+# MPRIS (Linux)
+[target.'cfg(target_os = "linux")'.dependencies]
+mpris-server = "0.8"
+
+[profile.release]
+lto = true
+strip = true

@@ -1,0 +1,25 @@
+# sonic-tui configuration
+
+server:
+  url: "https://your-navidrome-server.com"
+  username: "your-username"
+  password: "your-password"
+
+audio:
+  volume: 100
+  # Maximum bitrate for transcoding (optional, omit for original quality)
+  # max_bitrate: 320
+  gapless: true
+
+ui:
+  show_cover_art: true
+  color_from_cover: false
+  # accent_color: "#ff6600"
+
+cache:
+  # directory: ~/.cache/sonic-tui
+  enabled: true
+
+discord:
+  enabled: false
+  # application_id: "YOUR_DISCORD_APPLICATION_ID_HERE"
