@@ -4,6 +4,25 @@ A terminal-based music player for OpenSubsonic and Navidrome servers, inspired b
 
 ![Screenshot](screenshot.png)
 
+## Table of Contents
+
+- [Features](#features)
+- [Requirements](#requirements)
+- [Installation](#installation)
+- [Configuration](#configuration)
+  - [Discord Rich Presence](#discord-rich-presence-optional)
+- [Keybindings](#keybindings)
+  - [Global](#global)
+  - [Navigation](#navigation)
+  - [Queue](#queue)
+  - [Now Playing View](#now-playing-view)
+  - [Playlists](#playlists)
+  - [Search](#search)
+- [Dependencies](#dependencies)
+- [Troubleshooting](#troubleshooting)
+- [License](#license)
+- [Acknowledgments](#acknowledgments)
+
 ## Features
 
 - **Multi-panel interface** - Browse artists, albums, songs, and queue simultaneously
