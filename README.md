@@ -2,6 +2,8 @@
 
 A terminal-based music player for OpenSubsonic and Navidrome servers, inspired by [jellyfin-tui](https://github.com/dhonus/jellyfin-tui).
 
+![Screenshot](screenshot.png)
+
 ## Features
 
 - **Multi-panel interface** - Browse artists, albums, songs, and queue simultaneously
