@@ -56,6 +56,8 @@ cd sonic-tui
 cargo install --path .
 ```
 
+The binary will be installed to `~/.cargo/bin/sonic-tui`. Make sure `~/.cargo/bin` is in your `PATH`.
+
 ### Using cargo
 
 ```bash
@@ -69,6 +71,13 @@ A `shell.nix` is provided for development:
 ```bash
 nix-shell
 cargo build --release
+```
+
+Or install directly with:
+
+```bash
+nix-shell
+cargo install --path .
 ```
 
 ## Configuration
