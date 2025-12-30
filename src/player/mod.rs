@@ -122,6 +122,51 @@ impl Player {
         self.queue_position = 0;
     }
 
+    pub fn remove_from_queue(&mut self, index: usize) -> Option<Song> {
+        if index < self.queue.len() {
+            let removed = self.queue.remove(index);
+            // Adjust queue position if necessary
+            if index < self.queue_position {
+                self.queue_position = self.queue_position.saturating_sub(1);
+            } else if index == self.queue_position && index >= self.queue.len() {
+                self.queue_position = self.queue.len().saturating_sub(1);
+            }
+            Some(removed)
+        } else {
+            None
+        }
+    }
+
+    pub fn move_queue_item_up(&mut self, index: usize) -> bool {
+        if index > 0 && index < self.queue.len() {
+            self.queue.swap(index, index - 1);
+            // Adjust queue position if it was one of the swapped items
+            if self.queue_position == index {
+                self.queue_position = index - 1;
+            } else if self.queue_position == index - 1 {
+                self.queue_position = index;
+            }
+            true
+        } else {
+            false
+        }
+    }
+
+    pub fn move_queue_item_down(&mut self, index: usize) -> bool {
+        if index < self.queue.len().saturating_sub(1) {
+            self.queue.swap(index, index + 1);
+            // Adjust queue position if it was one of the swapped items
+            if self.queue_position == index {
+                self.queue_position = index + 1;
+            } else if self.queue_position == index + 1 {
+                self.queue_position = index;
+            }
+            true
+        } else {
+            false
+        }
+    }
+
     pub fn play_from_queue(&mut self, index: usize, get_url: impl Fn(&Song) -> String) -> Result<()> {
         if index < self.queue.len() {
             self.queue_position = index;

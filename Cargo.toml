@@ -1,6 +1,6 @@
 [package]
 name = "sonic-tui"
-version = "0.2.0"
+version = "0.3.0"
 edition = "2021"
 authors = ["Your Name <your.email@example.com>"]
 description = "A terminal music player for OpenSubsonic/Navidrome servers"

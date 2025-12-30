@@ -28,13 +28,20 @@ A terminal-based music player for OpenSubsonic and Navidrome servers, inspired b
 - **Multi-panel interface** - Browse artists, albums, songs, and queue simultaneously
 - **Now Playing view** - Immersive fullscreen view with album art and lyrics/queue
 - **Album art display** - Sixel/Kitty protocol support for inline images
+- **Audio visualizer** - Real-time waveform visualization
 - **Lyrics** - Synced lyrics from server with LRCLIB fallback
 - **Discord Rich Presence** - Show what you're listening to on Discord
-- **Queue management** - Add, remove, shuffle, and reorder tracks
+- **Queue management** - Add, remove, shuffle, reorder tracks, and save as playlist
+- **Advanced playback** - Shuffle, repeat (all/one), and radio mode (similar songs)
 - **Playlist support** - Browse, create, edit, and delete playlists
 - **Search** - Search across artists, albums, and songs
+- **Favorites** - Star/unstar and browse your favorite artists, albums, and songs
+- **Playback history** - Track and replay your listening history
+- **Statistics** - View top songs/albums/artists and recently added albums
+- **Filtering & sorting** - Filter and sort content in each panel
 - **Scrobbling** - Server-side scrobbling support
 - **Gapless playback** - Seamless transitions between tracks
+- **Custom keybindings** - Remap keys to your preference
 - **Vim-style keybindings** - Navigate with hjkl
 
 ## Requirements
@@ -99,6 +106,7 @@ ui:
   show_cover_art: true
   color_from_cover: false
   accent_color: null  # null for default, or hex color like "#ff5500"
+  show_visualizer: true
 
 cache:
   directory: "~/.cache/sonic-tui"
@@ -107,7 +115,17 @@ cache:
 discord:
   enabled: false
   # application_id: "YOUR_DISCORD_APPLICATION_ID"  # Get from https://discord.com/developers/applications
+
+keybindings:
+  # Customize any keybinding by changing its value
+  # See config.example.yaml for all available keybindings
+  quit: "q"
+  help: "?"
+  search: "/"
+  # ... and many more
 ```
+
+See `config.example.yaml` for all available configuration options and keybindings.
 
 ### Discord Rich Presence (Optional)
 
@@ -126,6 +144,8 @@ To show what you're listening to on Discord:
 
 ## Keybindings
 
+**Note:** All keybindings can be customized in `config.yaml` under the `keybindings` section. The keys listed below are the defaults.
+
 ### Global
 
 | Key | Action |
@@ -133,16 +153,23 @@ To show what you're listening to on Discord:
 | `q` | Quit |
 | `?` | Show help |
 | `/` | Search |
+| `\` | Filter current panel |
+| `o` | Cycle sort mode |
 | `P` | Playlists |
+| `F` | Favorites |
+| `H` | Playback history |
+| `I` | Statistics & insights |
 | `f` | Now Playing view |
 | `Space` | Play/Pause |
 | `n` | Next track |
 | `p` | Previous track |
 | `s` | Toggle shuffle |
-| `r` | Cycle repeat mode |
+| `r` | Cycle repeat mode (off → all → one) |
+| `R` | Toggle radio mode (similar songs) |
 | `+` / `=` | Volume up |
 | `-` | Volume down |
-| `Left` / `Right` | Seek backward/forward |
+| `Left` / `Right` | Seek backward/forward 5s |
+| `S` | Star/unstar current item |
 
 ### Navigation
 
@@ -165,6 +192,10 @@ To show what you're listening to on Discord:
 | `E` | Add to queue (play next) |
 | `a` | Add album to queue |
 | `A` | Add song to playlist |
+| `d` | Remove from queue (when focused on queue) |
+| `x` | Clear queue (when focused on queue) |
+| `J` / `K` | Move item down/up (when focused on queue) |
+| `w` | Save queue as playlist (when focused on queue) |
 
 ### Now Playing View
 

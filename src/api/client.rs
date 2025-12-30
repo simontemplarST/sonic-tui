@@ -219,4 +219,56 @@ impl SubsonicClient {
 
         format!("{}/rest/download?{}", self.base_url, query.join("&"))
     }
+
+    /// Star an item (artist, album, or song)
+    pub async fn star(&self, id: &str, item_type: &str) -> Result<()> {
+        let param_name = match item_type {
+            "artist" => "artistId",
+            "album" => "albumId",
+            "song" => "id",
+            _ => return Err(anyhow!("Invalid item type: {}", item_type)),
+        };
+        let _: Empty = self.get("star", &[(param_name, id)]).await?;
+        Ok(())
+    }
+
+    /// Unstar an item (artist, album, or song)
+    pub async fn unstar(&self, id: &str, item_type: &str) -> Result<()> {
+        let param_name = match item_type {
+            "artist" => "artistId",
+            "album" => "albumId",
+            "song" => "id",
+            _ => return Err(anyhow!("Invalid item type: {}", item_type)),
+        };
+        let _: Empty = self.get("unstar", &[(param_name, id)]).await?;
+        Ok(())
+    }
+
+    /// Get all starred items
+    pub async fn get_starred(&self) -> Result<Starred2> {
+        let response: StarredResponse = self.get("getStarred2", &[]).await?;
+        Ok(response.starred2)
+    }
+
+    /// Get similar songs
+    pub async fn get_similar_songs(&self, id: &str, count: usize) -> Result<Vec<Song>> {
+        let response: SimilarSongsResponse = self
+            .get(
+                "getSimilarSongs2",
+                &[("id", id), ("count", &count.to_string())],
+            )
+            .await?;
+        Ok(response.similar_songs.songs)
+    }
+
+    /// Get recently added albums
+    pub async fn get_recently_added_albums(&self, count: usize) -> Result<Vec<Album>> {
+        let response: AlbumList2Response = self
+            .get(
+                "getAlbumList2",
+                &[("type", "newest"), ("size", &count.to_string())],
+            )
+            .await?;
+        Ok(response.album_list.albums)
+    }
 }

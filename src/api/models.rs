@@ -50,6 +50,8 @@ pub struct Artist {
     pub album_count: Option<i32>,
     #[serde(rename = "coverArt")]
     pub cover_art: Option<String>,
+    #[serde(default)]
+    pub starred: Option<String>, // ISO 8601 timestamp when starred
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -63,6 +65,8 @@ pub struct ArtistDetail {
     pub name: String,
     #[serde(rename = "albumCount")]
     pub album_count: Option<i32>,
+    #[serde(default)]
+    pub starred: Option<String>, // ISO 8601 timestamp when starred
     #[serde(rename = "album", default)]
     pub albums: Vec<Album>,
 }
@@ -81,6 +85,8 @@ pub struct Album {
     pub duration: Option<i32>,
     pub year: Option<i32>,
     pub genre: Option<String>,
+    #[serde(default)]
+    pub starred: Option<String>, // ISO 8601 timestamp when starred
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -102,6 +108,8 @@ pub struct AlbumDetail {
     pub duration: Option<i32>,
     pub year: Option<i32>,
     pub genre: Option<String>,
+    #[serde(default)]
+    pub starred: Option<String>, // ISO 8601 timestamp when starred
     #[serde(rename = "song", default)]
     pub songs: Vec<Song>,
 }
@@ -117,6 +125,8 @@ pub struct Song {
     #[serde(rename = "artistId")]
     pub artist_id: Option<String>,
     pub track: Option<i32>,
+    #[serde(rename = "discNumber")]
+    pub disc_number: Option<i32>,
     pub year: Option<i32>,
     pub genre: Option<String>,
     #[serde(rename = "coverArt")]
@@ -126,6 +136,8 @@ pub struct Song {
     pub bit_rate: Option<i32>,
     pub path: Option<String>,
     pub suffix: Option<String>,
+    #[serde(default)]
+    pub starred: Option<String>, // ISO 8601 timestamp when starred
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -219,4 +231,43 @@ pub struct NowPlayingEntry {
     pub minutes_ago: Option<i32>,
     #[serde(rename = "playerId")]
     pub player_id: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct StarredResponse {
+    pub starred2: Starred2,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Starred2 {
+    #[serde(rename = "artist", default)]
+    pub artists: Vec<Artist>,
+    #[serde(rename = "album", default)]
+    pub albums: Vec<Album>,
+    #[serde(rename = "song", default)]
+    pub songs: Vec<Song>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SimilarSongsResponse {
+    #[serde(rename = "similarSongs2")]
+    pub similar_songs: SimilarSongs2,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SimilarSongs2 {
+    #[serde(rename = "song", default)]
+    pub songs: Vec<Song>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AlbumList2Response {
+    #[serde(rename = "albumList2")]
+    pub album_list: AlbumList2,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AlbumList2 {
+    #[serde(rename = "album", default)]
+    pub albums: Vec<Album>,
 }

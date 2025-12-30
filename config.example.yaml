@@ -15,6 +15,7 @@ ui:
   show_cover_art: true
   color_from_cover: false
   # accent_color: "#ff6600"
+  show_visualizer: true
 
 cache:
   # directory: ~/.cache/sonic-tui
@@ -23,3 +24,46 @@ cache:
 discord:
   enabled: false
   # application_id: "YOUR_DISCORD_APPLICATION_ID_HERE"
+  # Number of minutes to wait before clearing Discord presence when paused (default: 5)
+  pause_timeout_minutes: 5
+
+keybindings:
+  # Navigation
+  quit: "q"
+  help: "?"
+  search: "/"
+  filter: "\\"  # Backslash to enter filter mode, 'c' to clear filter
+  focus_left: "h"
+  focus_right: "l"
+
+  # Playback
+  play_pause: " "
+  stop: ""  # Not used
+  next: "n"
+  previous: "p"
+  seek_forward: ""  # Use arrow keys
+  seek_backward: ""  # Use arrow keys
+  volume_up: "+"
+  volume_down: "-"
+  shuffle: "s"
+  repeat: "r"
+
+  # Queue
+  enqueue: "e"
+  enqueue_next: "E"
+  enqueue_album: "a"
+  clear_queue: "x"
+  remove_from_queue: "d"
+
+  # Features
+  star: "S"
+  lyrics: ""  # Not implemented
+  add_to_playlist: "A"
+  now_playing: "f"
+  favorites: "F"
+  history: "H"
+  statistics: "I"
+  radio: "R"
+
+  # Sorting
+  sort: "o"
