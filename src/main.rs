@@ -66,7 +66,8 @@ async fn run_app(
     loop {
         terminal.draw(|f| ui::draw(f, &mut *app))?;
 
-        if event::poll(std::time::Duration::from_millis(16))? {
+        // Poll at 100ms (10 FPS) instead of 16ms (60 FPS) for better performance
+        if event::poll(std::time::Duration::from_millis(100))? {
             if let Event::Key(key) = event::read()? {
                 // Global quit
                 if key.code == KeyCode::Char('q') && key.modifiers.contains(KeyModifiers::CONTROL) {

@@ -1,5 +1,6 @@
 use anyhow::Result;
 use crossterm::event::{KeyCode, KeyEvent};
+use futures::future;
 use rand::seq::SliceRandom;
 use ratatui_image::picker::Picker;
 use ratatui_image::protocol::StatefulProtocol;
@@ -197,6 +198,7 @@ pub struct App {
 
     // Scrobble tracking
     pub scrobbled_song_id: Option<String>,
+    now_playing_song_id: Option<String>,
 
     // History tracking
     last_history_song_id: Option<String>,
@@ -204,11 +206,13 @@ pub struct App {
     // Cover art
     pub cover_art_data: Option<Vec<u8>>,
     pub cover_art_protocol: Option<Box<dyn StatefulProtocol>>,
+    loaded_cover_id: Option<String>, // Track which cover is currently loaded
 
     // Lyrics
     pub lyrics: Option<String>,
     pub lyrics_lines: Vec<String>,
     pub lyrics_timestamps: Vec<f64>, // Timestamps in seconds for synced lyrics
+    loaded_lyrics_key: Option<String>, // Track which lyrics are loaded (artist:title)
 
     // Now playing view
     pub now_playing_view: NowPlayingView,
@@ -301,9 +305,11 @@ impl App {
             loading: true,
             cover_art_data: None,
             cover_art_protocol: None,
+            loaded_cover_id: None,
             lyrics: None,
             lyrics_lines: Vec::new(),
             lyrics_timestamps: Vec::new(),
+            loaded_lyrics_key: None,
             shuffle: false,
             repeat: RepeatMode::Off,
             radio_mode: false,
@@ -311,6 +317,7 @@ impl App {
             add_to_playlist_song: None,
             new_playlist_name: String::new(),
             scrobbled_song_id: None,
+            now_playing_song_id: None,
             last_history_song_id: None,
             now_playing_view: NowPlayingView::Lyrics,
             discord,
@@ -1107,8 +1114,13 @@ impl App {
             _ if self.key_matches(&key, &self.config.keybindings.enqueue) => self.enqueue_selected().await?,
             _ if self.key_matches(&key, &self.config.keybindings.enqueue_next) => self.enqueue_next_selected().await?,
 
-            // Add all songs from album to queue
-            _ if self.key_matches(&key, &self.config.keybindings.enqueue_album) => self.enqueue_album().await?,
+            // Add all songs from album/artist to queue
+            _ if self.key_matches(&key, &self.config.keybindings.enqueue_album) => {
+                match self.focus {
+                    FocusPanel::Artists => self.enqueue_artist().await?,
+                    _ => self.enqueue_album().await?,
+                }
+            }
 
             // Add to playlist
             _ if self.key_matches(&key, &self.config.keybindings.add_to_playlist) => {
@@ -1955,6 +1967,12 @@ impl App {
     }
 
     pub async fn load_cover_art(&mut self, cover_id: &str) -> Result<()> {
+        // Skip if already loaded
+        if self.loaded_cover_id.as_deref() == Some(cover_id) {
+            return Ok(());
+        }
+
+        // Fetch from network
         let url = self.client.get_cover_art_url(cover_id, Some(300));
         match reqwest::get(&url).await {
             Ok(response) => {
@@ -1973,30 +1991,41 @@ impl App {
                     } else {
                         self.cover_art_protocol = None;
                     }
+                    self.loaded_cover_id = Some(cover_id.to_string());
                 }
             }
             Err(_) => {
                 self.cover_art_data = None;
                 self.cover_art_protocol = None;
+                self.loaded_cover_id = None;
             }
         }
         Ok(())
     }
 
     pub async fn load_lyrics(&mut self, artist: &str, title: &str) -> Result<()> {
-        // First try server lyrics
+        // Skip if already loaded
+        let lyrics_key = format!("{}:{}", artist, title);
+        if self.loaded_lyrics_key.as_deref() == Some(&lyrics_key) {
+            return Ok(());
+        }
+
+        // Try server lyrics first
         match self.client.get_lyrics(artist, title).await {
             Ok(Some(lyrics)) => {
                 self.lyrics_lines = lyrics.lines().map(|s| s.to_string()).collect();
                 self.lyrics_timestamps = Vec::new(); // No timestamps from server
                 self.lyrics = Some(lyrics);
+                self.loaded_lyrics_key = Some(lyrics_key);
                 return Ok(());
             }
             _ => {}
         }
 
         // Fallback to LRCLIB for synced lyrics
-        self.fetch_lrclib_lyrics(artist, title).await
+        self.fetch_lrclib_lyrics(artist, title).await?;
+        self.loaded_lyrics_key = Some(lyrics_key);
+        Ok(())
     }
 
     async fn fetch_lrclib_lyrics(&mut self, artist: &str, title: &str) -> Result<()> {
@@ -2153,6 +2182,79 @@ impl App {
                 self.player.enqueue(song.clone());
             }
             self.status_message = Some(format!("Added {} songs to queue", filtered_songs.len()));
+        }
+        Ok(())
+    }
+
+    async fn enqueue_artist(&mut self) -> Result<()> {
+        let filtered_artists = self.get_filtered_artists();
+        if let Some(artist) = filtered_artists.get(self.selected_artist) {
+            // Fetch albums for this artist
+            let artist_detail = self.client.get_artist(&artist.id).await?;
+            if artist_detail.albums.is_empty() {
+                self.status_message = Some("Artist has no albums".to_string());
+                return Ok(());
+            }
+
+            self.status_message = Some(format!("Loading {} albums...", artist_detail.albums.len()));
+
+            // Check if queue is empty to auto-play
+            let was_empty = self.player.queue.is_empty();
+
+            // Fetch all albums in parallel for speed
+            let client = self.client.clone();
+            let album_ids: Vec<String> = artist_detail.albums.iter().map(|a| a.id.clone()).collect();
+            let album_futures: Vec<_> = album_ids.iter()
+                .map(|id| {
+                    let client = client.clone();
+                    let id = id.clone();
+                    async move { client.get_album(&id).await }
+                })
+                .collect();
+
+            let album_results = future::join_all(album_futures).await;
+
+            let mut total_songs = 0;
+            let mut started_playback = false;
+
+            for album_result in album_results {
+                if let Ok(album_detail) = album_result {
+                    for song in &album_detail.songs {
+                        self.player.enqueue(song.clone());
+                        total_songs += 1;
+
+                        // Start playback immediately after first song is enqueued
+                        if was_empty && !started_playback {
+                            let client = self.client.clone();
+                            let bitrate = self.player.max_bitrate();
+                            self.player.play_from_queue(0, |song| {
+                                client.get_stream_url(&song.id, bitrate)
+                            })?;
+                            started_playback = true;
+                        }
+                    }
+                }
+            }
+
+            self.status_message = Some(format!("Added {} songs from {} albums to queue", total_songs, artist_detail.albums.len()));
+
+            // Auto-focus queue after enqueueing artist
+            self.focus = FocusPanel::Queue;
+            self.selected_queue = 0;
+
+            // Load cover art and lyrics AFTER all songs are enqueued
+            if was_empty && !self.player.queue.is_empty() {
+                if let Some(first_song) = self.player.queue.first().cloned() {
+                    if let Some(cover_id) = &first_song.cover_art {
+                        self.load_cover_art(cover_id).await?;
+                    }
+
+                    // Load lyrics for first song
+                    let artist_name = first_song.artist.as_deref().unwrap_or("");
+                    let title = &first_song.title;
+                    self.load_lyrics(artist_name, title).await?;
+                }
+            }
         }
         Ok(())
     }
@@ -2360,15 +2462,24 @@ impl App {
         // Update Discord Rich Presence
         self.update_discord_presence();
 
-        // Track new songs in history
+        // Track new songs in history and send "now playing" scrobble
         if let Some(song) = self.player.current_song.clone() {
-            if self.last_history_song_id.as_ref() != Some(&song.id) {
-                let song_id = song.id.clone();
-                self.add_to_history(song);
-                self.last_history_song_id = Some(song_id);
+            let song_id = song.id.clone();
+
+            // Add to history if new song
+            if self.last_history_song_id.as_ref() != Some(&song_id) {
+                self.add_to_history(song.clone());
+                self.last_history_song_id = Some(song_id.clone());
+            }
+
+            // Send "now playing" when a new song starts
+            if self.now_playing_song_id.as_ref() != Some(&song_id) {
+                let _ = self.client.scrobble(&song_id, false).await;
+                self.now_playing_song_id = Some(song_id);
             }
         } else {
             self.last_history_song_id = None;
+            self.now_playing_song_id = None;
         }
 
         // Scrobble near end of song (90%) - only once per song
@@ -2397,13 +2508,7 @@ impl App {
                         let bitrate = self.player.max_bitrate();
                         let url = client.get_stream_url(&song.id, bitrate);
                         self.player.play_url(&url, song.clone())?;
-
-                        // Load cover art and lyrics for replayed song
-                        if let Some(cover_id) = &song.cover_art {
-                            self.load_cover_art(cover_id).await?;
-                        }
-                        let artist = song.artist.as_deref().unwrap_or("");
-                        self.load_lyrics(artist, &song.title).await?;
+                        // Note: Cover art and lyrics already loaded, no need to reload
                     }
                 }
                 RepeatMode::All => {
@@ -2415,41 +2520,14 @@ impl App {
                         self.player.play_from_queue(0, |song| {
                             client.get_stream_url(&song.id, bitrate)
                         })?;
-
-                        // Load cover art and lyrics for wrapped song
-                        if let Some(song) = self.player.current_song.clone() {
-                            if let Some(cover_id) = &song.cover_art {
-                                self.load_cover_art(cover_id).await?;
-                            }
-                            let artist = song.artist.as_deref().unwrap_or("");
-                            self.load_lyrics(artist, &song.title).await?;
-                        }
-                    } else if played {
-                        // Load cover art and lyrics for next song
-                        if let Some(song) = self.player.current_song.clone() {
-                            if let Some(cover_id) = &song.cover_art {
-                                self.load_cover_art(cover_id).await?;
-                            }
-                            let artist = song.artist.as_deref().unwrap_or("");
-                            self.load_lyrics(artist, &song.title).await?;
-                        }
                     }
+                    // Cover art and lyrics are swapped in automatically at start of tick() - no blocking!
                 }
                 RepeatMode::Off => {
                     let client = self.client.clone();
                     let bitrate = self.player.max_bitrate();
-                    let played = self.player.next(|song| client.get_stream_url(&song.id, bitrate))?;
-
-                    // Load cover art and lyrics for next song
-                    if played {
-                        if let Some(song) = self.player.current_song.clone() {
-                            if let Some(cover_id) = &song.cover_art {
-                                self.load_cover_art(cover_id).await?;
-                            }
-                            let artist = song.artist.as_deref().unwrap_or("");
-                            self.load_lyrics(artist, &song.title).await?;
-                        }
-                    }
+                    let _played = self.player.next(|song| client.get_stream_url(&song.id, bitrate))?;
+                    // Cover art and lyrics are swapped in automatically at start of tick() - no blocking!
                 }
             }
         }
@@ -2457,8 +2535,10 @@ impl App {
         // Refill radio queue if needed
         self.refill_radio_queue().await?;
 
-        // Update visualizer
-        self.update_visualizer();
+        // Update visualizer only if enabled
+        if self.config.ui.show_visualizer {
+            self.update_visualizer();
+        }
 
         Ok(())
     }
@@ -2493,14 +2573,10 @@ impl App {
                 let energy_boost = ((progress as f32) * 6.28).sin().abs() * 0.3 + 0.7;
                 let combined = (wave1 * 0.4 + wave2 * 0.35 + wave3 * 0.25) * energy_boost;
 
-                // Add position-based randomness that changes over time
-                use std::collections::hash_map::RandomState;
-                use std::hash::{BuildHasher, Hash, Hasher};
-                let mut hasher = RandomState::new().build_hasher();
-                ((position as u64 / 2) + i as u64).hash(&mut hasher);
-                let random_factor = (hasher.finish() % 100) as f32 / 100.0;
+                // Simple pseudorandom variation (faster than hashing)
+                let pseudo_random = ((position as u64 / 2 + i as u64 * 1103515245) % 100) as f32 / 100.0;
 
-                *bar = (combined * 0.75 + random_factor * 0.25).min(1.0);
+                *bar = (combined * 0.85 + pseudo_random * 0.15).min(1.0);
             }
         } else {
             // Decay bars when paused

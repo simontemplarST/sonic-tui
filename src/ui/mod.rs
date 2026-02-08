@@ -481,7 +481,8 @@ fn draw_help_modal(f: &mut Frame, app: &App) {
         Line::from(Span::styled("Queue", Style::default().add_modifier(Modifier::BOLD).fg(Color::Cyan))),
         Line::from(format!("  {}            Add to queue", kb.enqueue)),
         Line::from(format!("  {}            Play next", kb.enqueue_next)),
-        Line::from(format!("  {}            Add album to queue", kb.enqueue_album)),
+        Line::from(format!("  {}            Add artist/album to queue", kb.enqueue_album)),
+        Line::from("               (on Artists: all songs from artist, on Albums/Songs: all songs from album)"),
         Line::from(format!("  {}            Add to playlist", kb.add_to_playlist)),
         Line::from(format!("  {}            Toggle shuffle", kb.shuffle)),
         Line::from(format!("  {}            Cycle repeat mode", kb.repeat)),
@@ -506,7 +507,11 @@ fn draw_help_modal(f: &mut Frame, app: &App) {
         Line::from(Span::styled("Filter & Sort", Style::default().add_modifier(Modifier::BOLD).fg(Color::Cyan))),
         Line::from(format!("  {}            Filter current panel", if kb.filter == "\\" { "\\\\" } else { &kb.filter })),
         Line::from("  c            Clear filter"),
-        Line::from(format!("  {}            Cycle sort mode", kb.sort)),
+        Line::from(format!("  {}            Cycle sort mode (focus panel first)", kb.sort)),
+        Line::from("               Artists: A-Z → Z-A → Album Count"),
+        Line::from("               Albums: A-Z → Z-A → Year → Artist"),
+        Line::from("               Songs: Track → A-Z → Z-A → Artist → Album → Duration"),
+        Line::from("               Current mode shown in panel title (e.g., Artists [A-Z])"),
         Line::from(""),
         Line::from(Span::styled("Favorites", Style::default().add_modifier(Modifier::BOLD).fg(Color::Cyan))),
         Line::from(format!("  {}            Star/unstar current item", kb.star)),
@@ -1108,9 +1113,10 @@ fn draw_player(f: &mut Frame, app: &App, area: Rect) {
     f.render_widget(gauge, chunks[0]);
 
     // Help line
-    let help = " Tab: panels │ j/k: nav │ Enter: play │ e: queue │ Space: pause │ /: search │ P: playlists │ f: now playing │ ?: help";
+    let help = "Tab: panels │ j/k: nav │ Enter: play │ e: queue │ Space: pause │ /: search │ o: sort │ P: playlists │ f: now playing │ ?: help";
     let help_widget = Paragraph::new(help)
-        .style(Style::default().fg(Color::DarkGray));
+        .style(Style::default().fg(Color::DarkGray))
+        .alignment(ratatui::layout::Alignment::Center);
     f.render_widget(help_widget, chunks[1]);
 }
 

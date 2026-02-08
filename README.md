@@ -7,6 +7,7 @@ A terminal-based music player for OpenSubsonic and Navidrome servers, inspired b
 ## Table of Contents
 
 - [Features](#features)
+- [Changelog](#changelog)
 - [Requirements](#requirements)
 - [Installation](#installation)
 - [Configuration](#configuration)
@@ -38,11 +39,29 @@ A terminal-based music player for OpenSubsonic and Navidrome servers, inspired b
 - **Favorites** - Star/unstar and browse your favorite artists, albums, and songs
 - **Playback history** - Track and replay your listening history
 - **Statistics** - View top songs/albums/artists and recently added albums
-- **Filtering & sorting** - Filter and sort content in each panel
+- **Filtering & sorting** - Filter and sort content by multiple criteria (name, year, artist, track, duration, album count)
 - **Scrobbling** - Server-side scrobbling support
 - **Gapless playback** - Seamless transitions between tracks
 - **Custom keybindings** - Remap keys to your preference
 - **Vim-style keybindings** - Navigate with hjkl
+
+## Changelog
+
+### v0.3.1 (2026-02-08)
+
+#### Features
+- **Artist-level enqueue** - Press `a` on an artist to enqueue all their music at once (context-sensitive: works on artists, albums, and songs)
+- **Improved sorting help** - Help screen now shows all available sort modes for each panel (Artists: A-Z/Z-A/Count, Albums: A-Z/Z-A/Year/Artist, Songs: Track/A-Z/Z-A/Artist/Album/Duration)
+- **Centered help bar** - Bottom quick reference bar is now centered for better readability
+
+#### Improvements
+- **Performance optimization** - Reduced CPU usage by ~80% (changed event loop from 60 FPS to 10 FPS)
+- **Optimized visualizer** - Faster calculations using simple pseudorandom instead of hash operations
+- **Fixed scrobbling** - Now properly sends "now playing" status to Navidrome/Last.fm in addition to scrobble at 90% completion
+- **Smooth track transitions** - Removed blocking prefetch that caused UI freezes between songs
+
+#### Documentation
+- Added `CACHING_IMPLEMENTATION_PLAN.md` - Detailed plan for implementing true background caching in the future
 
 ## Requirements
 
@@ -190,7 +209,7 @@ To show what you're listening to on Discord:
 |-----|--------|
 | `e` | Add to queue |
 | `E` | Add to queue (play next) |
-| `a` | Add album to queue |
+| `a` | Add artist/album to queue (context-sensitive) |
 | `A` | Add song to playlist |
 | `d` | Remove from queue (when focused on queue) |
 | `x` | Clear queue (when focused on queue) |
