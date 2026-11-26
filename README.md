@@ -1,5 +1,18 @@
 # sonic-tui
 
+> **Fork notice.** This is a fork of [xamcost/sonic-tui](https://codeberg.org/xamcost/sonic-tui) (GPL-3.0, unchanged).
+> It adds three fixes on top of upstream v0.3.1:
+>
+> - **Gapless playback that is actually gapless** — the next track is queued and prefetched in mpv instead of being
+>   loaded after the current one goes idle; `audio.gapless: false` now turns it off.
+> - **Lyrics and cover art follow automatic track changes**, and server lyrics come from OpenSubsonic
+>   `getLyricsBySongId` (synced, e.g. Navidrome `.lrc` files) before `getLyrics` and LRCLIB.
+> - **`ui.image_protocol`** (or `SONIC_TUI_IMAGE_PROTOCOL`) to force sixel/kitty/iterm2/halfblocks when protocol
+>   detection picks one the terminal can't draw (e.g. Konsole inside tmux).
+>
+> These changes were written with the help of an AI coding assistant, so they are kept here rather than sent upstream.
+> Everything else is upstream's work.
+
 A terminal-based music player for OpenSubsonic and Navidrome servers, inspired by [jellyfin-tui](https://github.com/dhonus/jellyfin-tui).
 
 ![Screenshot](screenshot.png)
@@ -75,7 +88,7 @@ A terminal-based music player for OpenSubsonic and Navidrome servers, inspired b
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/sonic-tui.git
+git clone https://github.com/simontemplarST/sonic-tui.git
 cd sonic-tui
 
 # Build and install
