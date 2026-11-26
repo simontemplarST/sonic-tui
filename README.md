@@ -1,12 +1,13 @@
 # sonic-tui
 
 > **Fork notice.** This is a fork of [xamcost/sonic-tui](https://codeberg.org/xamcost/sonic-tui) (GPL-3.0, unchanged).
-> It adds three fixes on top of upstream v0.3.1:
+> It adds these changes on top of upstream v0.3.1:
 >
 > - **Gapless playback that is actually gapless** — the next track is queued and prefetched in mpv instead of being
 >   loaded after the current one goes idle; `audio.gapless: false` now turns it off.
 > - **Lyrics and cover art follow automatic track changes**, and server lyrics come from OpenSubsonic
 >   `getLyricsBySongId` (synced, e.g. Navidrome `.lrc` files) before `getLyrics` and LRCLIB.
+> - **Karaoke lyrics view** (`L`): big-text current line with a sung-progress fill.
 > - **`ui.image_protocol`** (or `SONIC_TUI_IMAGE_PROTOCOL`) to force sixel/kitty/iterm2/halfblocks when protocol
 >   detection picks one the terminal can't draw (e.g. Konsole inside tmux).
 >
@@ -43,6 +44,7 @@ A terminal-based music player for OpenSubsonic and Navidrome servers, inspired b
 - **Now Playing view** - Immersive fullscreen view with album art and lyrics/queue
 - **Album art display** - Sixel/Kitty protocol support for inline images
 - **Audio visualizer** - Real-time waveform visualization
+- **Karaoke view** - `L` opens full-screen lyrics: the current line in big block letters with a fill that sweeps across it as it's sung, a 3-2-1 countdown after instrumental breaks, and `[`/`]` to nudge the timing
 - **Lyrics** - Synced lyrics from server (OpenSubsonic `getLyricsBySongId`, then `getLyrics`) with LRCLIB fallback; follows automatic track changes
 - **Discord Rich Presence** - Show what you're listening to on Discord
 - **Queue management** - Add, remove, shuffle, reorder tracks, and save as playlist
@@ -234,6 +236,7 @@ To show what you're listening to on Discord:
 | Key | Action |
 |-----|--------|
 | `Tab` / `t` | Toggle lyrics/queue |
+| `L` | Karaoke lyrics view (`[`/`]` shift timing, `0` resets, `Esc` back) |
 | `Esc` / `f` / `q` | Exit to main view |
 | `j` / `k` | Navigate queue (when queue is shown) |
 | `Enter` | Play selected song from queue |

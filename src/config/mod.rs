@@ -260,7 +260,7 @@ fn default_key_enqueue_album() -> String { "a".to_string() }
 fn default_key_clear_queue() -> String { "x".to_string() }
 fn default_key_remove_from_queue() -> String { "d".to_string() }
 fn default_key_star() -> String { "S".to_string() }
-fn default_key_lyrics() -> String { "".to_string() }  // Not currently implemented
+fn default_key_lyrics() -> String { "L".to_string() }  // Karaoke lyrics view
 fn default_key_add_to_playlist() -> String { "A".to_string() }
 fn default_key_now_playing() -> String { "f".to_string() }
 fn default_key_favorites() -> String { "F".to_string() }

@@ -9,6 +9,8 @@ use ratatui_image::StatefulImage;
 
 use crate::app::{App, FocusPanel, InputMode, NowPlayingView, RepeatMode, SearchFocus};
 
+mod karaoke;
+
 pub fn draw(f: &mut Frame, app: &mut App) {
     let main_chunks = Layout::default()
         .direction(Direction::Vertical)
@@ -19,7 +21,9 @@ pub fn draw(f: &mut Frame, app: &mut App) {
         .split(f.area());
 
     // Check if in now playing mode
-    if app.input_mode == InputMode::NowPlaying {
+    if app.input_mode == InputMode::Karaoke {
+        karaoke::draw(f, app, main_chunks[0]);
+    } else if app.input_mode == InputMode::NowPlaying {
         draw_now_playing_view(f, app, main_chunks[0]);
     } else {
         // Main area split: left (library) and right (queue + art)
@@ -502,6 +506,7 @@ fn draw_help_modal(f: &mut Frame, app: &App) {
         Line::from(format!("  {}            History", kb.history)),
         Line::from(format!("  {}            Statistics & Insights", kb.statistics)),
         Line::from(format!("  {}            Now Playing view", kb.now_playing)),
+        Line::from(format!("  {}            Karaoke lyrics view", kb.lyrics)),
         Line::from(format!("  {}            This help", kb.help)),
         Line::from(""),
         Line::from(Span::styled("Filter & Sort", Style::default().add_modifier(Modifier::BOLD).fg(Color::Cyan))),
@@ -521,6 +526,12 @@ fn draw_help_modal(f: &mut Frame, app: &App) {
         Line::from(format!("  Esc/{}/{}      Exit to main view", kb.now_playing, kb.quit)),
         Line::from("  j/k          Navigate queue"),
         Line::from("  Enter        Play from queue"),
+        Line::from(format!("  {}            Karaoke lyrics view", kb.lyrics)),
+        Line::from(""),
+        Line::from(Span::styled("Karaoke View", Style::default().add_modifier(Modifier::BOLD).fg(Color::Cyan))),
+        Line::from("  [ / ]        Lyrics 0.25 s earlier / later"),
+        Line::from("  0            Reset lyrics timing"),
+        Line::from(format!("  Esc/{}/{}      Back", kb.lyrics, kb.quit)),
         Line::from(""),
         Line::from(Span::styled("Other", Style::default().add_modifier(Modifier::BOLD).fg(Color::Cyan))),
         Line::from(format!("  {}            Quit", kb.quit)),
@@ -1113,7 +1124,11 @@ fn draw_player(f: &mut Frame, app: &App, area: Rect) {
     f.render_widget(gauge, chunks[0]);
 
     // Help line
-    let help = "Tab: panels │ j/k: nav │ Enter: play │ e: queue │ Space: pause │ /: search │ o: sort │ P: playlists │ f: now playing │ ?: help";
+    let help = if app.input_mode == InputMode::Karaoke {
+        "Space: pause │ n/p: next/prev │ ←/→: seek │ [ / ]: lyrics earlier/later │ 0: reset timing │ Esc: back"
+    } else {
+        "Tab: panels │ j/k: nav │ Enter: play │ e: queue │ Space: pause │ /: search │ o: sort │ P: playlists │ f: now playing │ L: karaoke │ ?: help"
+    };
     let help_widget = Paragraph::new(help)
         .style(Style::default().fg(Color::DarkGray))
         .alignment(ratatui::layout::Alignment::Center);

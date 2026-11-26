@@ -22,6 +22,7 @@ pub enum FocusPanel {
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum InputMode {
     Normal,
+    Karaoke,
     Search,
     SearchResults,
     Playlists,
@@ -216,6 +217,10 @@ pub struct App {
 
     // Now playing view
     pub now_playing_view: NowPlayingView,
+    /// Karaoke view: seconds the lyrics are shifted (positive = later), reset on every new song.
+    pub lyrics_offset: f64,
+    /// Mode to return to when the karaoke view closes.
+    karaoke_return: InputMode,
 
     // Discord Rich Presence
     pub discord: Option<DiscordPresence>,
@@ -320,6 +325,8 @@ impl App {
             now_playing_song_id: None,
             last_history_song_id: None,
             now_playing_view: NowPlayingView::Lyrics,
+            lyrics_offset: 0.0,
+            karaoke_return: InputMode::Normal,
             discord,
             last_discord_update: None,
             pause_started_at: None,
@@ -807,6 +814,11 @@ impl App {
             return Ok(false);
         }
 
+        // Karaoke lyrics view
+        if self.input_mode == InputMode::Karaoke {
+            return self.handle_karaoke_mode(key).await;
+        }
+
         // Now playing mode
         if self.input_mode == InputMode::NowPlaying {
             return self.handle_now_playing_mode(key).await;
@@ -1210,6 +1222,12 @@ impl App {
                 self.input_mode = InputMode::NowPlaying;
             }
 
+            // Karaoke lyrics view
+            _ if self.key_matches(&key, &self.config.keybindings.lyrics) => {
+                self.karaoke_return = InputMode::Normal;
+                self.input_mode = InputMode::Karaoke;
+            }
+
             _ => {}
         }
 
@@ -1507,7 +1525,42 @@ impl App {
         Ok(false)
     }
 
+    async fn handle_karaoke_mode(&mut self, key: KeyEvent) -> Result<bool> {
+        if self.key_matches(&key, &self.config.keybindings.lyrics) {
+            self.input_mode = self.karaoke_return;
+            return Ok(false);
+        }
+        match key.code {
+            KeyCode::Esc | KeyCode::Char('q') => {
+                self.input_mode = self.karaoke_return;
+            }
+            // Nudge lyric timing when an LRC file is early or late
+            KeyCode::Char('[') => self.lyrics_offset -= 0.25,
+            KeyCode::Char(']') => self.lyrics_offset += 0.25,
+            KeyCode::Char('0') => self.lyrics_offset = 0.0,
+            // Playback keys behave as in the now playing view
+            KeyCode::Char(' ')
+            | KeyCode::Char('n')
+            | KeyCode::Char('p')
+            | KeyCode::Left
+            | KeyCode::Right
+            | KeyCode::Char('+')
+            | KeyCode::Char('=')
+            | KeyCode::Char('-') => {
+                self.handle_now_playing_mode(key).await?;
+                self.input_mode = InputMode::Karaoke;
+            }
+            _ => {}
+        }
+        Ok(false)
+    }
+
     async fn handle_now_playing_mode(&mut self, key: KeyEvent) -> Result<bool> {
+        if self.key_matches(&key, &self.config.keybindings.lyrics) {
+            self.karaoke_return = InputMode::NowPlaying;
+            self.input_mode = InputMode::Karaoke;
+            return Ok(false);
+        }
         match key.code {
             // Exit now playing view
             KeyCode::Esc | KeyCode::Char('f') | KeyCode::Char('q') => {
@@ -2154,13 +2207,18 @@ impl App {
         self.lyrics_timestamps = Vec::new();
     }
 
+    /// Playback position on the lyrics' clock (shifted by the karaoke offset).
+    pub fn lyrics_position(&self) -> f64 {
+        self.player.position() - self.lyrics_offset
+    }
+
     /// Calculate which line of lyrics should be highlighted based on song progress
     pub fn current_lyrics_line(&self) -> usize {
         if self.lyrics_lines.is_empty() {
             return 0;
         }
 
-        let position = self.player.position();
+        let position = self.lyrics_position();
 
         // If we have timestamps, use them for accurate sync
         if !self.lyrics_timestamps.is_empty() {
@@ -2513,6 +2571,7 @@ impl App {
                 let _ = self.client.scrobble(&song_id, false).await;
                 self.now_playing_song_id = Some(song_id);
                 // Load cover art and lyrics on every song change, including automatic (gapless) advance.
+                self.lyrics_offset = 0.0;
                 if let Some(cover_id) = &song.cover_art {
                     let _ = self.load_cover_art(cover_id).await;
                 } else {

@@ -61,7 +61,7 @@ keybindings:
 
   # Features
   star: "S"
-  lyrics: ""  # Not implemented
+  lyrics: "L"  # Karaoke lyrics view (big text, sung-line fill)
   add_to_playlist: "A"
   now_playing: "f"
   favorites: "F"
