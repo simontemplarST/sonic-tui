@@ -41,7 +41,7 @@ A terminal-based music player for OpenSubsonic and Navidrome servers, inspired b
 - **Statistics** - View top songs/albums/artists and recently added albums
 - **Filtering & sorting** - Filter and sort content by multiple criteria (name, year, artist, track, duration, album count)
 - **Scrobbling** - Server-side scrobbling support
-- **Gapless playback** - Seamless transitions between tracks
+- **Gapless playback** - Seamless transitions between tracks (the next track is queued in mpv and prefetched; `audio.gapless: false` turns it off)
 - **Custom keybindings** - Remap keys to your preference
 - **Vim-style keybindings** - Navigate with hjkl
 

@@ -15,17 +15,22 @@ pub struct Player {
     pub queue_position: usize,
     pub volume: i32,
     max_bitrate: Option<i32>,
+    // Gapless: the queue entry (index, song) appended to mpv's playlist after the current track.
+    gapless: bool,
+    preloaded: Option<(usize, Song)>,
 }
 
 impl Player {
-    pub fn new(volume: i32, max_bitrate: Option<i32>) -> Result<Self> {
+    pub fn new(volume: i32, max_bitrate: Option<i32>, gapless: bool) -> Result<Self> {
         let mpv = Mpv::new().map_err(|e| anyhow!("Failed to create mpv: {:?}", e))?;
 
         // Configure mpv
         mpv_err(mpv.set_property("vo", "null"))?;
         mpv_err(mpv.set_property("video", "no"))?;
         mpv_err(mpv.set_property("volume", volume as i64))?;
-        mpv_err(mpv.set_property("gapless-audio", "yes"))?;
+        mpv_err(mpv.set_property("gapless-audio", if gapless { "yes" } else { "no" }))?;
+        // Open the next playlist entry (an HTTP stream) before the current one ends.
+        mpv_err(mpv.set_property("prefetch-playlist", if gapless { "yes" } else { "no" }))?;
 
         Ok(Self {
             mpv,
@@ -34,11 +39,14 @@ impl Player {
             queue_position: 0,
             volume,
             max_bitrate,
+            gapless,
+            preloaded: None,
         })
     }
 
     pub fn play_url(&mut self, url: &str, song: Song) -> Result<()> {
         mpv_err(self.mpv.command("loadfile", &[url, "replace"]))?;
+        self.preloaded = None; // replace leaves mpv with a one-entry playlist
         self.current_song = Some(song);
         Ok(())
     }
@@ -61,6 +69,7 @@ impl Player {
     #[allow(dead_code)]
     pub fn stop(&mut self) -> Result<()> {
         mpv_err(self.mpv.command("stop", &[]))?;
+        self.preloaded = None;
         self.current_song = None;
         Ok(())
     }
@@ -206,6 +215,48 @@ impl Player {
             self.seek_absolute(0.0)?;
             Ok(false)
         }
+    }
+
+    pub fn gapless(&self) -> bool {
+        self.gapless
+    }
+
+    /// Keep mpv's playlist as [current, next] so mpv plays straight into the next track.
+    /// `next` is (queue index, song, stream url), or None when nothing should follow.
+    pub fn sync_preload(&mut self, next: Option<(usize, Song, String)>) {
+        let same = match (&self.preloaded, &next) {
+            (Some((_, a)), Some((_, b, _))) => a.id == b.id,
+            (None, None) => true,
+            _ => false,
+        };
+        if same {
+            if let (Some(p), Some((i, _, _))) = (self.preloaded.as_mut(), next.as_ref()) {
+                p.0 = *i; // queue edits can move the same song to another index
+            }
+            return;
+        }
+        if self.preloaded.take().is_some() {
+            let _ = self.mpv.command("playlist-remove", &["1"]);
+        }
+        if let Some((i, song, url)) = next {
+            if self.mpv.command("loadfile", &[&url, "append"]).is_ok() {
+                self.preloaded = Some((i, song));
+            }
+        }
+    }
+
+    /// True when mpv has moved on to the preloaded track; current_song/queue_position then follow it.
+    pub fn take_advance(&mut self) -> bool {
+        let pos: i64 = self.mpv.get_property("playlist-pos").unwrap_or(-1);
+        if pos >= 1 {
+            if let Some((i, song)) = self.preloaded.take() {
+                let _ = self.mpv.command("playlist-remove", &["0"]);
+                self.queue_position = i;
+                self.current_song = Some(song);
+                return true;
+            }
+        }
+        false
     }
 
     pub fn max_bitrate(&self) -> Option<i32> {

@@ -238,7 +238,7 @@ impl App {
         // Test connection
         client.ping().await?;
 
-        let player = Player::new(config.audio.volume, config.audio.max_bitrate)?;
+        let player = Player::new(config.audio.volume, config.audio.max_bitrate, config.audio.gapless)?;
 
         // Initialize Discord Rich Presence if enabled
         let discord = if config.discord.enabled {
@@ -2511,6 +2511,31 @@ impl App {
         } else {
             // Clear scrobble tracking when no song playing
             self.scrobbled_song_id = None;
+        }
+
+        // Gapless: follow mpv onto the preloaded track, then make sure the right next track is
+        // queued in mpv. The idle branch below stays as the fallback (end of queue, failed load).
+        if self.player.gapless() && self.player.current_song.is_some() {
+            self.player.take_advance();
+            let len = self.player.queue.len();
+            let pos = self.player.queue_position;
+            let next_idx = if len == 0 {
+                None
+            } else {
+                match self.repeat {
+                    RepeatMode::One => Some(pos.min(len - 1)),
+                    RepeatMode::All => Some(if pos + 1 < len { pos + 1 } else { 0 }),
+                    RepeatMode::Off => if pos + 1 < len { Some(pos + 1) } else { None },
+                }
+            };
+            let bitrate = self.player.max_bitrate();
+            let next = next_idx.and_then(|i| {
+                self.player.queue.get(i).cloned().map(|s| {
+                    let url = self.client.get_stream_url(&s.id, bitrate);
+                    (i, s, url)
+                })
+            });
+            self.player.sync_preload(next);
         }
 
         // Check if current song ended
