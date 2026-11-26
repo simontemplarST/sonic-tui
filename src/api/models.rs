@@ -194,6 +194,36 @@ pub struct PlaylistDetail {
     pub entries: Vec<Song>,
 }
 
+// OpenSubsonic getLyricsBySongId (songLyrics extension): structured, optionally synced lyrics.
+#[derive(Debug, Clone, Deserialize)]
+pub struct LyricsListResponse {
+    #[serde(rename = "lyricsList")]
+    pub lyrics_list: Option<LyricsList>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct LyricsList {
+    #[serde(rename = "structuredLyrics", default)]
+    pub structured_lyrics: Vec<StructuredLyrics>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct StructuredLyrics {
+    #[serde(default)]
+    pub synced: bool,
+    #[serde(default)]
+    pub offset: Option<f64>,
+    #[serde(default)]
+    pub line: Vec<LyricLine>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct LyricLine {
+    pub start: Option<f64>,
+    #[serde(default)]
+    pub value: String,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct LyricsResponse {
     pub lyrics: Option<Lyrics>,
@@ -203,7 +233,7 @@ pub struct LyricsResponse {
 pub struct Lyrics {
     pub artist: Option<String>,
     pub title: Option<String>,
-    #[serde(rename = "$value")]
+    #[serde(alias = "$value")]
     pub value: Option<String>,
 }
 

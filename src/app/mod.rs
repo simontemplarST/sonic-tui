@@ -2025,12 +2025,33 @@ impl App {
             return Ok(());
         }
 
+        // Prefer the server's structured lyrics by song id: synced when the server has them (e.g. Navidrome with .lrc files).
+        let song_id = self
+            .player
+            .current_song
+            .as_ref()
+            .filter(|s| s.title == title)
+            .map(|s| s.id.clone());
+        if let Some(id) = song_id {
+            if let Ok(Some((lines, stamps))) = self.client.get_lyrics_by_song_id(&id).await {
+                self.lyrics = Some(lines.join("\n"));
+                self.lyrics_lines = lines;
+                self.lyrics_timestamps = stamps;
+                self.loaded_lyrics_key = Some(lyrics_key);
+                return Ok(());
+            }
+        }
+        // Don't leave the previous song's lyrics up if the lookups below fail.
+        self.clear_lyrics();
+
         // Try server lyrics first
         match self.client.get_lyrics(artist, title).await {
             Ok(Some(lyrics)) => {
-                self.lyrics_lines = lyrics.lines().map(|s| s.to_string()).collect();
-                self.lyrics_timestamps = Vec::new(); // No timestamps from server
-                self.lyrics = Some(lyrics);
+                self.parse_lrc(&lyrics);
+                if self.lyrics_timestamps.is_empty() {
+                    self.lyrics_lines = lyrics.lines().map(|s| s.to_string()).collect();
+                    self.lyrics = Some(lyrics);
+                }
                 self.loaded_lyrics_key = Some(lyrics_key);
                 return Ok(());
             }
@@ -2491,6 +2512,15 @@ impl App {
             if self.now_playing_song_id.as_ref() != Some(&song_id) {
                 let _ = self.client.scrobble(&song_id, false).await;
                 self.now_playing_song_id = Some(song_id);
+                // Load cover art and lyrics on every song change, including automatic (gapless) advance.
+                if let Some(cover_id) = &song.cover_art {
+                    let _ = self.load_cover_art(cover_id).await;
+                } else {
+                    self.cover_art_protocol = None;
+                    self.loaded_cover_id = None;
+                }
+                let artist = song.artist.clone().unwrap_or_default();
+                let _ = self.load_lyrics(&artist, &song.title).await;
             }
         } else {
             self.last_history_song_id = None;

@@ -30,7 +30,7 @@ A terminal-based music player for OpenSubsonic and Navidrome servers, inspired b
 - **Now Playing view** - Immersive fullscreen view with album art and lyrics/queue
 - **Album art display** - Sixel/Kitty protocol support for inline images
 - **Audio visualizer** - Real-time waveform visualization
-- **Lyrics** - Synced lyrics from server with LRCLIB fallback
+- **Lyrics** - Synced lyrics from server (OpenSubsonic `getLyricsBySongId`, then `getLyrics`) with LRCLIB fallback; follows automatic track changes
 - **Discord Rich Presence** - Show what you're listening to on Discord
 - **Queue management** - Add, remove, shuffle, reorder tracks, and save as playlist
 - **Advanced playback** - Shuffle, repeat (all/one), and radio mode (similar songs)

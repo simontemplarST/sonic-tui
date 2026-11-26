@@ -165,6 +165,29 @@ impl SubsonicClient {
         Ok(response.lyrics.and_then(|l| l.value))
     }
 
+    /// Lyrics by song id (OpenSubsonic songLyrics). Returns (lines, timestamps in seconds; empty if unsynced).
+    pub async fn get_lyrics_by_song_id(&self, id: &str) -> Result<Option<(Vec<String>, Vec<f64>)>> {
+        let r: LyricsListResponse = self.get("getLyricsBySongId", &[("id", id)]).await?;
+        let list = match r.lyrics_list {
+            Some(l) => l.structured_lyrics,
+            None => return Ok(None),
+        };
+        let pick = list
+            .iter()
+            .find(|l| l.synced && !l.line.is_empty())
+            .or_else(|| list.iter().find(|l| !l.line.is_empty()));
+        let Some(l) = pick else { return Ok(None) };
+        // OpenSubsonic: positive offset (ms) shows lyrics sooner.
+        let offset = l.offset.unwrap_or(0.0);
+        let lines = l.line.iter().map(|x| x.value.clone()).collect();
+        let stamps = if l.synced {
+            l.line.iter().map(|x| ((x.start.unwrap_or(0.0) - offset) / 1000.0).max(0.0)).collect()
+        } else {
+            Vec::new()
+        };
+        Ok(Some((lines, stamps)))
+    }
+
     /// Scrobble a song (mark as played)
     pub async fn scrobble(&self, id: &str, submission: bool) -> Result<()> {
         let submission_str = if submission { "true" } else { "false" };
