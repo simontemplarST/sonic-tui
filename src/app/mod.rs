@@ -1986,6 +1986,21 @@ impl App {
                     {
                         let mut picker = Picker::from_termios().unwrap_or_else(|_| Picker::new((8, 16)));
                         picker.guess_protocol();
+                        // Detection can pick a protocol the terminal cannot draw: inside tmux, Konsole answers the
+                        // Kitty query but cannot render Kitty unicode placeholders. Let the user force one.
+                        let forced = std::env::var("SONIC_TUI_IMAGE_PROTOCOL")
+                            .ok()
+                            .or_else(|| self.config.ui.image_protocol.clone());
+                        if let Some(p) = forced {
+                            use ratatui_image::picker::ProtocolType;
+                            match p.to_ascii_lowercase().as_str() {
+                                "sixel" => picker.protocol_type = ProtocolType::Sixel,
+                                "kitty" => picker.protocol_type = ProtocolType::Kitty,
+                                "iterm2" => picker.protocol_type = ProtocolType::Iterm2,
+                                "halfblocks" => picker.protocol_type = ProtocolType::Halfblocks,
+                                _ => {} // "auto" or unknown: keep the detected protocol
+                            }
+                        }
                         let protocol = picker.new_resize_protocol(img);
                         self.cover_art_protocol = Some(protocol);
                     } else {

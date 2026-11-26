@@ -58,6 +58,10 @@ pub struct UiConfig {
     pub accent_color: Option<String>,
     #[serde(default = "default_true")]
     pub show_visualizer: bool,
+    /// Cover art protocol: "auto" (default), "sixel", "kitty", "iterm2" or "halfblocks".
+    /// The SONIC_TUI_IMAGE_PROTOCOL environment variable overrides it.
+    #[serde(default)]
+    pub image_protocol: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -77,6 +81,7 @@ impl Default for UiConfig {
             color_from_cover: false,
             accent_color: None,
             show_visualizer: true,
+            image_protocol: None,
         }
     }
 }

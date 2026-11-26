@@ -300,6 +300,14 @@ img2sixel /path/to/image.png
 kitty +kitten icat /path/to/image.png
 ```
 
+If the art shows up as boxes or garbage, protocol detection picked one your terminal can't draw (for example
+Konsole inside tmux answers the Kitty query but can't render Kitty's unicode placeholders). Force a protocol with
+`ui.image_protocol` in the config, or per terminal with the `SONIC_TUI_IMAGE_PROTOCOL` environment variable:
+
+```bash
+SONIC_TUI_IMAGE_PROTOCOL=sixel sonic-tui
+```
+
 ### Audio not playing
 
 Ensure mpv is installed and working:

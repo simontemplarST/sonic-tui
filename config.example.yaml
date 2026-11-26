@@ -16,6 +16,10 @@ ui:
   color_from_cover: false
   # accent_color: "#ff6600"
   show_visualizer: true
+  # Cover art protocol: auto (detect), sixel, kitty, iterm2 or halfblocks.
+  # Useful when detection is wrong, e.g. Konsole inside tmux needs "sixel".
+  # The SONIC_TUI_IMAGE_PROTOCOL environment variable overrides this.
+  # image_protocol: auto
 
 cache:
   # directory: ~/.cache/sonic-tui
